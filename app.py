@@ -3,12 +3,12 @@ from ultralytics import YOLO
 from PIL import Image
 import io
 import base64
-import os
 import numpy as np
+import os
 
 app = Flask(__name__)
 
-# 🛠️ Load model ONCE when server starts
+# 🚀 Load model ONCE when app starts
 model = YOLO('best.pt')
 
 @app.route('/', methods=['GET', 'POST'])
@@ -26,21 +26,17 @@ def index():
 
             # Open the uploaded image
             image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-
-            # 🚀 Resize (optional) to avoid huge RAM usage
             image.thumbnail((640, 640))
 
-            # Convert PIL Image to numpy array
             img_array = np.array(image)
 
-            # 🔥 Run detection (NO model loading here)
-            results = model.predict(source=img_array, save=False, imgsz=640, device='cpu')
+            # 🔥 Run detection
+            results = model.predict(source=img_array, save=False, imgsz=640)
 
-            # Get the resulting image with boxes
+            # Get result image with boxes
             result_img = results[0].plot()
             im_pil = Image.fromarray(result_img)
 
-            # Convert output image to base64
             buf = io.BytesIO()
             im_pil.save(buf, format='JPEG')
             output_image_data = base64.b64encode(buf.getvalue()).decode('utf-8')
