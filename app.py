@@ -7,7 +7,7 @@ import os
 
 app = Flask(__name__)
 
-model = None  # Lazy load model
+model = None  # Lazy load
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -16,27 +16,28 @@ def index():
     output_image_data = None
 
     if request.method == 'POST':
-        # Load model only once
+        # Load model if not already loaded
         if model is None:
             model = YOLO('best.pt')
-
+            model.to('cpu')  # FORCE CPU
+        
         file = request.files['file']
         img_bytes = file.read()
 
-        # Convert input image to base64
+        # Input image base64
         input_image_data = base64.b64encode(img_bytes).decode('utf-8')
 
-        # Open image directly from bytes
+        # Open image directly
         image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
 
-        # Predict directly without saving temp file
-        results = model.predict(image, save=False, imgsz=640)
+        # Predict on CPU
+        results = model.predict(image, save=False, imgsz=640, device='cpu')
 
-        # Get image with bounding boxes
+        # Plot results
         result_img = results[0].plot()
         im_pil = Image.fromarray(result_img)
 
-        # Convert output image to base64
+        # Output image base64
         buf = io.BytesIO()
         im_pil.save(buf, format='JPEG')
         output_image_data = base64.b64encode(buf.getvalue()).decode('utf-8')
