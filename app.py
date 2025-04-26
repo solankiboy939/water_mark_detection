@@ -6,7 +6,6 @@ import base64
 import os
 
 app = Flask(__name__)
-model = YOLO('best.pt')  # Your trained watermark logo detection model
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -15,35 +14,41 @@ def index():
 
     if request.method == 'POST':
         file = request.files['file']
-        img_bytes = file.read()
+        if file:
+            img_bytes = file.read()
 
-        # Convert input image to base64 for preview
-        input_image_data = base64.b64encode(img_bytes).decode('utf-8')
+            # Convert input image to base64 for preview
+            input_image_data = base64.b64encode(img_bytes).decode('utf-8')
 
-        # Save image temporarily in memory
-        image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-        temp_input_path = 'temp.jpg'
-        image.save(temp_input_path)
+            # Open the uploaded image
+            image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
 
-        # Run YOLO detection
-        results = model(temp_input_path, save=False, imgsz=640)
+            # 🚀 Resize (optional) to avoid huge RAM usage
+            image.thumbnail((640, 640))
 
-        # Get image with boxes
-        result_img = results[0].plot()
-        im_pil = Image.fromarray(result_img)
+            # Convert PIL Image to numpy array
+            import numpy as np
+            img_array = np.array(image)
 
-        # Convert output image to base64
-        buf = io.BytesIO()
-        im_pil.save(buf, format='JPEG')
-        output_image_data = base64.b64encode(buf.getvalue()).decode('utf-8')
+            # 🔥 Load YOLO model only when needed
+            model = YOLO('best.pt')
 
-        # Clean up temp image if needed
-        os.remove(temp_input_path)
+            # Run detection directly on array
+            results = model.predict(source=img_array, save=False, imgsz=640)
+
+            # Get the resulting image with boxes
+            result_img = results[0].plot()
+            im_pil = Image.fromarray(result_img)
+
+            # Convert output image to base64
+            buf = io.BytesIO()
+            im_pil.save(buf, format='JPEG')
+            output_image_data = base64.b64encode(buf.getvalue()).decode('utf-8')
 
     return render_template('index.html',
                            input_image_data=input_image_data,
                            output_image_data=output_image_data)
 
 if __name__ == "__main__":
-    port = int(os.environ.get('PORT', 5000))  # 🔥 critical change
+    port = int(os.environ.get('PORT', 5000))
     app.run(host="0.0.0.0", port=port)
