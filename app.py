@@ -7,40 +7,41 @@ import os
 
 app = Flask(__name__)
 
-model = None  # Lazy load
+# Load YOLO model and force CPU
+model = YOLO('best.pt')
+model.to('cpu')  # FORCE CPU (important)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    global model
     input_image_data = None
     output_image_data = None
 
     if request.method == 'POST':
-        # Load model if not already loaded
-        if model is None:
-            model = YOLO('best.pt')
-            model.to('cpu')  # FORCE CPU
-        
         file = request.files['file']
         img_bytes = file.read()
 
-        # Input image base64
+        # Convert input image to base64 for preview
         input_image_data = base64.b64encode(img_bytes).decode('utf-8')
 
-        # Open image directly
+        # Save uploaded image temporarily
         image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+        temp_input_path = 'temp.jpg'
+        image.save(temp_input_path)
 
-        # Predict on CPU
-        results = model.predict(image, save=False, imgsz=640, device='cpu')
+        # Run YOLO detection on CPU
+        results = model(temp_input_path, device='cpu', save=False, imgsz=640)
 
-        # Plot results
+        # Get image with bounding boxes
         result_img = results[0].plot()
         im_pil = Image.fromarray(result_img)
 
-        # Output image base64
+        # Convert output image to base64
         buf = io.BytesIO()
         im_pil.save(buf, format='JPEG')
         output_image_data = base64.b64encode(buf.getvalue()).decode('utf-8')
+
+        # Clean up temporary file
+        os.remove(temp_input_path)
 
     return render_template('index.html',
                            input_image_data=input_image_data,
