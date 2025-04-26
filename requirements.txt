@@ -3,3 +3,5 @@ torch
 Pillow
 gunicorn
 ultralytics
+opencv-python
+numpy
