@@ -5,6 +5,7 @@
   <title>Watermark Detector</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
 
@@ -18,6 +19,12 @@
 
   <!-- Main Container -->
   <div class="container">
+    {% if error %}
+    <div class="error-message">
+      ⚠️ {{ error }}
+    </div>
+    {% endif %}
+
     <p>Detect watermarks in images instantly using AI.</p>
 
     <form method="POST" enctype="multipart/form-data" class="upload-box">
@@ -38,6 +45,7 @@
         <img src="data:image/jpeg;base64,{{ input_image_data }}" alt="Input">
       </div>
       {% endif %}
+      
       {% if output_image_data %}
       <div class="card">
         <h3>📤 Output Image</h3>
