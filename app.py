@@ -7,43 +7,39 @@ import os
 
 app = Flask(__name__)
 
+model = None  # Lazy load model
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    global model
     input_image_data = None
     output_image_data = None
 
     if request.method == 'POST':
-        file = request.files['file']
-        if file:
-            img_bytes = file.read()
-
-            # Convert input image to base64 for preview
-            input_image_data = base64.b64encode(img_bytes).decode('utf-8')
-
-            # Open the uploaded image
-            image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-
-            # 🚀 Resize (optional) to avoid huge RAM usage
-            image.thumbnail((640, 640))
-
-            # Convert PIL Image to numpy array
-            import numpy as np
-            img_array = np.array(image)
-
-            # 🔥 Load YOLO model only when needed
+        # Load model only once
+        if model is None:
             model = YOLO('best.pt')
 
-            # Run detection directly on array
-            results = model.predict(source=img_array, save=False, imgsz=640)
+        file = request.files['file']
+        img_bytes = file.read()
 
-            # Get the resulting image with boxes
-            result_img = results[0].plot()
-            im_pil = Image.fromarray(result_img)
+        # Convert input image to base64
+        input_image_data = base64.b64encode(img_bytes).decode('utf-8')
 
-            # Convert output image to base64
-            buf = io.BytesIO()
-            im_pil.save(buf, format='JPEG')
-            output_image_data = base64.b64encode(buf.getvalue()).decode('utf-8')
+        # Open image directly from bytes
+        image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+
+        # Predict directly without saving temp file
+        results = model.predict(image, save=False, imgsz=640)
+
+        # Get image with bounding boxes
+        result_img = results[0].plot()
+        im_pil = Image.fromarray(result_img)
+
+        # Convert output image to base64
+        buf = io.BytesIO()
+        im_pil.save(buf, format='JPEG')
+        output_image_data = base64.b64encode(buf.getvalue()).decode('utf-8')
 
     return render_template('index.html',
                            input_image_data=input_image_data,
