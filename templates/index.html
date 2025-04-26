@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Watermark Detector</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="logo-container">
+      <img src="/static/image.png" alt="Logo">
+      <h2>Watermark Logo Detector</h2>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="container">
+    <p>Detect watermarks in images instantly using AI.</p>
+
+    <form method="POST" enctype="multipart/form-data" class="upload-box">
+      <label for="file">
+        <input type="file" id="file" name="file" accept="image/*" required hidden>
+        <div class="upload-area">
+          <span>📤 Drag & Drop Image Here</span>
+          <p>or click to upload</p>
+        </div>
+      </label>
+      <button type="submit">Detect Logo</button>
+    </form>
+
+    <div class="images">
+      {% if input_image_data %}
+      <div class="card">
+        <h3>📥 Uploaded Image</h3>
+        <img src="data:image/jpeg;base64,{{ input_image_data }}" alt="Input">
+      </div>
+      {% endif %}
+      {% if output_image_data %}
+      <div class="card">
+        <h3>📤 Output Image</h3>
+        <img src="data:image/jpeg;base64,{{ output_image_data }}" alt="Output">
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>Developed by <strong>Manohar Solanki</strong> | © 2025 Watermark Detector</p>
+  </footer>
+
+</body>
+</html>
