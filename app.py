@@ -4,12 +4,12 @@ from PIL import Image
 import io
 import base64
 import os
+import numpy as np
 
 app = Flask(__name__)
 
-# Load YOLO model and force CPU
+# 🛠️ Load model ONCE when server starts
 model = YOLO('best.pt')
-model.to('cpu')  # FORCE CPU (important)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -18,30 +18,32 @@ def index():
 
     if request.method == 'POST':
         file = request.files['file']
-        img_bytes = file.read()
+        if file:
+            img_bytes = file.read()
 
-        # Convert input image to base64 for preview
-        input_image_data = base64.b64encode(img_bytes).decode('utf-8')
+            # Convert input image to base64 for preview
+            input_image_data = base64.b64encode(img_bytes).decode('utf-8')
 
-        # Save uploaded image temporarily
-        image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-        temp_input_path = 'temp.jpg'
-        image.save(temp_input_path)
+            # Open the uploaded image
+            image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
 
-        # Run YOLO detection on CPU
-        results = model(temp_input_path, device='cpu', save=False, imgsz=640)
+            # 🚀 Resize (optional) to avoid huge RAM usage
+            image.thumbnail((640, 640))
 
-        # Get image with bounding boxes
-        result_img = results[0].plot()
-        im_pil = Image.fromarray(result_img)
+            # Convert PIL Image to numpy array
+            img_array = np.array(image)
 
-        # Convert output image to base64
-        buf = io.BytesIO()
-        im_pil.save(buf, format='JPEG')
-        output_image_data = base64.b64encode(buf.getvalue()).decode('utf-8')
+            # 🔥 Run detection (NO model loading here)
+            results = model.predict(source=img_array, save=False, imgsz=640, device='cpu')
 
-        # Clean up temporary file
-        os.remove(temp_input_path)
+            # Get the resulting image with boxes
+            result_img = results[0].plot()
+            im_pil = Image.fromarray(result_img)
+
+            # Convert output image to base64
+            buf = io.BytesIO()
+            im_pil.save(buf, format='JPEG')
+            output_image_data = base64.b64encode(buf.getvalue()).decode('utf-8')
 
     return render_template('index.html',
                            input_image_data=input_image_data,
